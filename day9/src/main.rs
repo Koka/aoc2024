@@ -88,7 +88,7 @@ fn defrag_part2(disk_map: &mut [Option<usize>]) {
         let mut matching_slot = None;
         for (i, slot) in free.iter().enumerate() {
             let slot_size = slot.1 - slot.0;
-            if slot_size >= file_size {
+            if slot_size >= file_size && slot.1 < file.0 {
                 matching_slot = Some(i);
                 break;
             }
@@ -130,7 +130,7 @@ fn defrag_part2(disk_map: &mut [Option<usize>]) {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let input = fs::read_to_string("./input_simple.txt")?;
+    let input = fs::read_to_string("./input.txt")?;
 
     let disk_map = disk_map(&input);
     println!("Checksum: {}", checksum(&disk_map));
