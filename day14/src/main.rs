@@ -1,6 +1,7 @@
-use std::{collections::HashMap, error::Error, fs};
+use core::f64;
+use std::{error::Error, fs};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 struct Bot {
     x: usize,
     y: usize,
@@ -68,6 +69,37 @@ fn print_map(w: usize, h: usize, bots: &[Bot]) {
     println!("Safety: {}", quads.iter().product::<usize>());
 }
 
+fn get_variance(w: usize, h: usize, bots: &[Bot]) -> (isize, isize) {
+    let mut xy = vec![vec![0usize; w]; h];
+
+    for j in 0..h {
+        for i in 0..w {
+            xy[j][i] = bots.iter().filter(|b| b.x == i && b.y == j).count();
+        }
+    }
+
+    let kx = bots[0].x;
+    let ky = bots[0].y;
+
+    let mut ex: isize = 0;
+    let mut ey: isize = 0;
+    let mut ex2: isize = 0;
+    let mut ey2: isize = 0;
+
+    for b in bots {
+        ex += b.x as isize - kx as isize;
+        ey += b.y as isize - ky as isize;
+        ex2 += isize::pow(b.x as isize - kx as isize, 2);
+        ey2 += isize::pow(b.y as isize - ky as isize, 2);
+    }
+
+    let n = bots.len() as isize;
+    let vx = (ex2 - isize::pow(ex, 2) / n) / (n - 1);
+    let vy = (ey2 - isize::pow(ey, 2) / n) / (n - 1);
+
+    (vx, vy)
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     let input = fs::read_to_string("./input.txt")?;
 
@@ -90,11 +122,39 @@ fn main() -> Result<(), Box<dyn Error>> {
     let w = 101;
     let h = 103;
 
-    for _t in 0..100 {
+    let mut min_variance = f64::MAX;
+    let mut found_t = None;
+    let mut found_bots = None;
+
+    for t in 0..10_000 {
         bots.iter_mut().for_each(|b| b.move_it(w, h));
+
+        let (vx, vy) = get_variance(w, h, &bots);
+
+        let sqv = f64::sqrt(isize::pow(vx, 2) as f64 + isize::pow(vy, 2) as f64);
+
+        if sqv < min_variance {
+            min_variance = sqv;
+            found_t = Some(t);
+            found_bots = Some(bots.clone());
+        }
+
+        if t % 50 == 0 {
+            println!("Elapsed time: {}, Min variance: {}", t + 1, min_variance);
+        }
+
+        if t == 99 {
+            println!("100 seconds");
+            print_map(w, h, &bots);
+        }
     }
 
-    print_map(w, h, &bots);
+    if let Some(t) = found_t {
+        if let Some(bots) = found_bots {
+            println!("XMAS TREE FOUND AT: {}", t + 1);
+            print_map(w, h, &bots);
+        }
+    }
 
     Ok(())
 }
