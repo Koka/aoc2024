@@ -1,4 +1,8 @@
-use std::{collections::HashMap, error::Error, fs};
+use std::{
+    collections::{HashMap, HashSet},
+    error::Error,
+    fs,
+};
 
 fn print_maze(maze: &Vec<Vec<char>>) {
     println!();
@@ -31,11 +35,15 @@ fn path_score(path: &[char]) -> usize {
     })
 }
 
-fn print_path(maze: &Vec<Vec<char>>, path: &Vec<char>, initial_state: ((usize, usize), char)) {
-    let mut my_maze = maze.clone();
+fn collect_path(
+    maze: &Vec<Vec<char>>,
+    path: &Vec<char>,
+    initial_state: ((usize, usize), char),
+) -> HashSet<(usize, usize)> {
+    let mut tiles = HashSet::new();
 
     let (mut pos, mut dir) = initial_state;
-    my_maze[pos.0][pos.1] = ' ';
+    tiles.insert(pos);
 
     for action in path {
         match action {
@@ -68,11 +76,10 @@ fn print_path(maze: &Vec<Vec<char>>, path: &Vec<char>, initial_state: ((usize, u
             }
             _ => unreachable!("Bad action"),
         }
-        my_maze[pos.0][pos.1] = ' ';
+        tiles.insert(pos);
     }
 
-    println!("Score: {}", path_score(path));
-    print_maze(&my_maze);
+    tiles
 }
 
 fn find_paths(
@@ -86,16 +93,37 @@ fn find_paths(
     let mut visited = HashMap::new();
     let mut queue = vec![((start, dir), vec![])];
 
+    let mut min_score = None;
+
     while let Some((state, path)) = queue.pop() {
         let (pos, dir) = state;
 
+        let my_score = path_score(&path);
+
+        if let Some(old_score) = min_score {
+            if my_score > old_score {
+                continue;
+            }
+        }
+
         if pos == finish {
+            if let Some(old_score) = min_score {
+                if my_score < old_score {
+                    min_score = Some(my_score);
+                }
+            }
+
+            if min_score.is_none() {
+                min_score = Some(my_score);
+            }
+
             found_paths.push(path);
+
             continue;
         }
 
         if let Some(&old_score) = visited.get(&state) {
-            if old_score <= path_score(&path) {
+            if old_score < path_score(&path) {
                 continue;
             }
         }
@@ -157,7 +185,7 @@ fn find_paths(
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let input = fs::read_to_string("./input.txt")?;
+    let input = fs::read_to_string("./input_simple.txt")?;
 
     let maze = input
         .lines()
@@ -179,9 +207,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             println!();
 
             println!("Paths found: {}", found_paths.len());
-            // for p in &found_paths {
-            //     print_path(&maze, p, (start, dir));
-            // }
 
             let min_score = found_paths
                 .iter()
@@ -189,7 +214,15 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .min()
                 .expect("No paths found");
 
-            println!("Part 1: {}", min_score)
+            println!("Part 1: {}", min_score);
+
+            let min_points = found_paths
+                .iter()
+                .filter(|p| path_score(p) == min_score)
+                .flat_map(|p| collect_path(&maze, p, (start, dir)))
+                .collect::<HashSet<_>>();
+
+            println!("Part 2: {}", min_points.len());
         }
     }
 
