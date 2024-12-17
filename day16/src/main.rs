@@ -123,6 +123,7 @@ fn find_paths(
         }
 
         if let Some(&old_score) = visited.get(&state) {
+            // TODO: < loops on real input, <= gives wrong part 2 result
             if old_score < path_score(&path) {
                 continue;
             }
