@@ -1,4 +1,4 @@
-use std::{collections::HashSet, error::Error, fs};
+use std::{collections::HashMap, error::Error, fs};
 
 fn print_maze(maze: &Vec<Vec<char>>) {
     println!();
@@ -83,7 +83,7 @@ fn find_paths(
 ) -> Vec<Vec<char>> {
     let mut found_paths = vec![];
 
-    let mut visited = HashSet::new();
+    let mut visited = HashMap::new();
     let mut queue = vec![((start, dir), vec![])];
 
     while let Some((state, path)) = queue.pop() {
@@ -94,11 +94,13 @@ fn find_paths(
             continue;
         }
 
-        if visited.contains(&state) {
-            continue;
+        if let Some(&old_score) = visited.get(&state) {
+            if old_score <= path_score(&path) {
+                continue;
+            }
         }
 
-        visited.insert(state);
+        visited.insert(state, path_score(&path));
 
         // + is move, < is rotate left, > is rotate right
         for op in ['+', '<', '>'] {
@@ -177,9 +179,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             println!();
 
             println!("Paths found: {}", found_paths.len());
-            for p in &found_paths {
-                print_path(&maze, p, (start, dir));
-            }
+            // for p in &found_paths {
+            //     print_path(&maze, p, (start, dir));
+            // }
 
             let min_score = found_paths
                 .iter()
